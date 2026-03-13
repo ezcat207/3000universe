@@ -734,6 +734,30 @@
         }
 
 
+        // Fetch data on load
+        async function loadData() {
+            try {
+                const response = await fetch('dashboard_data.json');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                rawData = await response.json();
+                
+                // Keep only the most recent batch initially
+                if (rawData.length > 0) {
+                    const latestBatch = [...new Set(rawData.map(r => r.batch))].sort().reverse()[0];
+                    filteredData = rawData; // Temporarily need full data to populate filters
+                    populateFilters();
+                    
+                    // Now set initial filter to latest batch
+                    document.getElementById('batchFilter').value = latestBatch;
+                    filterData(); // This will apply the filter and render
+                }
+            } catch (err) {
+                console.error("Failed to load dashboard data:", err);
+                // Fallback for local files without local server due to CORS
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 3rem; color:#f87171;"><h2>Data Could Not Be Loaded</h2><p>If you opened this HTML file directly from your hard drive, your browser blocked the data file for security reasons (CORS).</p><p>To view it locally, please run a local web server (e.g. <code>python3 -m http.server</code>) or view it on Vercel!</p></td></tr>';
+            }
+        }
+
         document.addEventListener('keydown', function(event){
             if(event.key === "Escape"){
                 closeModal();
@@ -742,7 +766,9 @@
 
         // Initialize
         setupColumnMenu();
-        filterData();
+        
+        // Load data asynchronously (which will trigger filterData and renderTable once complete)
+        document.addEventListener('DOMContentLoaded', loadData);
 
     </script>
 </body>
