@@ -147,6 +147,37 @@
         .metric-card .val.yellow { color:var(--warning); }
         .metric-card .val.red { color:var(--danger); }
         .metric-card .val.blue { color:#60a5fa; }
+        .metric-card { position:relative; }
+        .info-icon {
+            position:absolute; top:6px; right:6px; width:17px; height:17px;
+            border-radius:50%; background:rgba(148,163,184,0.12); color:#64748b;
+            font-size:10px; font-style:italic; font-weight:700;
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; border:1px solid rgba(148,163,184,0.2);
+            transition:all 0.2s; line-height:1; padding:0; flex-shrink:0;
+        }
+        .info-icon:hover, .info-icon.active {
+            background:rgba(96,165,250,0.15); color:#60a5fa;
+            border-color:rgba(96,165,250,0.35);
+        }
+        .metric-tooltip {
+            display:none; position:absolute; bottom:calc(100% + 10px);
+            left:50%; transform:translateX(-50%);
+            background:#1e293b; border:1px solid rgba(255,255,255,0.12);
+            border-radius:10px; padding:10px 14px;
+            font-size:0.78rem; color:#cbd5e1; line-height:1.55;
+            width:230px; z-index:200; pointer-events:none;
+            box-shadow:0 8px 24px rgba(0,0,0,0.5);
+            white-space:normal; text-align:left;
+            font-style:normal; font-weight:400;
+        }
+        .metric-tooltip::after {
+            content:''; position:absolute; top:100%; left:50%;
+            transform:translateX(-50%);
+            border:6px solid transparent; border-top-color:#1e293b;
+        }
+        .info-icon:hover .metric-tooltip,
+        .info-icon.active .metric-tooltip { display:block; }
 
         .chart-section {
             display:grid; grid-template-columns:2fr 1fr; gap:2rem; margin-bottom:2rem;
@@ -381,6 +412,34 @@
         fetchData();
     }
 
+    // ===== METRIC CARD HELPER =====
+    const MC_INFO = {
+        'Volume':          'Monthly search volume — estimated number of searches per month on Google (source: DataForSEO). Higher volume = larger audience.',
+        'KD':              'Keyword Difficulty (0–100) — how competitive page 1 is. Derived from the backlink strength of current top-10 results. Lower = easier to rank.',
+        'CPC':             'Cost Per Click — average Google Ads bid for this keyword. Higher CPC signals strong commercial intent and monetization potential per visitor.',
+        'ROI':             'Return on Investment — (Est. ARR − Investment) ÷ Investment × 100. Positive ROI means ranking pays back the link-building cost within one year.',
+        'Investment':      'Estimated total link-building budget to reach page 1, calculated from required referring domains × average link cost ($100–$200 per link).',
+        'Est. ARR':        'Estimated Annual Recurring Revenue — monthly volume × ~10% top-3 CTR × 12 months × assumed $1 revenue per organic visitor.',
+        'Req Links':       'Required referring domains to reach page 1, estimated from the KD score. This is the number of unique sites that need to link to your page.',
+        'GT Value':        'Google Trends interest score (0–100) at time of analysis. 100 = peak search interest. Relative, not absolute.',
+        'GT Type':         '"rising" = rapidly growing search momentum — good timing to rank early. "top" = consistently high-volume, stable keyword.',
+        'Intent':          'Search intent — what users want: informational (learn), commercial (compare), transactional (buy/sign up), navigational (find a specific site).',
+        'Route':           'Recommended content type to target this keyword — e.g., blog post, landing page, comparison page, tool, or product page.',
+        'YoY Trend':       'Year-over-Year change in search volume (%). Positive = growing market interest; negative = declining topic.',
+        'Ads Comp':        'Advertiser competition density in Google Ads. High = many advertisers bidding, confirming strong commercial value.',
+        'Avg Ref Domains': 'Average number of unique referring domains pointing to pages currently ranking in the top 10 for this keyword.',
+        'Backlinks':       'Total backlink count of the average top-10 ranking page. More backlinks = stronger competition.',
+        'DoFollow':        'DoFollow backlinks pass SEO authority (link juice) to the page. More impactful than nofollow links for ranking.',
+        'Ref Domains':     'Number of unique root domains currently linking to this keyword\'s target page.',
+    };
+    function mc(label, val, cls, sty) {
+        const tip = MC_INFO[label] || '';
+        const clsStr = cls ? ` class="val ${cls}"` : ' class="val"';
+        const styStr = sty ? ` style="${sty}"` : '';
+        const btn = tip ? `<button class="info-icon" onclick="event.stopPropagation();this.classList.toggle('active')">i<span class="metric-tooltip">${tip}</span></button>` : '';
+        return `<div class="metric-card"><div class="label">${label}</div><div${clsStr}${styStr}>${val}</div>${btn}</div>`;
+    }
+
     // ===== DETAIL VIEW =====
     function showDetail(index) {
         const row = filteredData[index];
@@ -396,24 +455,23 @@
             <span class="root-badge" style="background:rgba(16,185,129,0.15);color:#34d399;margin-left:8px">${row.batch}</span>
             <h2>${row.keyword}</h2>
             <div class="metric-grid">
-                <div class="metric-card"><div class="label">Volume</div><div class="val blue">${(row.volume||0).toLocaleString()}</div></div>
-                <div class="metric-card"><div class="label">KD</div><div class="val ${kdClass}">${row.kd||'-'}</div></div>
-                <div class="metric-card"><div class="label">CPC</div><div class="val">$${row.cpc||0}</div></div>
-                <div class="metric-card"><div class="label">ROI</div><div class="val ${roiClass}">${row.roi>=9999?'>9999%':Math.round(row.roi)+'%'}</div></div>
-                <div class="metric-card"><div class="label">Investment</div><div class="val">$${Math.round(row.link_cost||0).toLocaleString()}</div></div>
-                <div class="metric-card"><div class="label">Est. ARR</div><div class="val blue">$${Math.round(row.annual_rev||0).toLocaleString()}</div></div>
-                <div class="metric-card"><div class="label">Req Links</div><div class="val">${row.req_links||0}</div></div>
-                <div class="metric-card"><div class="label">GT Value</div><div class="val blue">${row.value||0}</div></div>
-                <div class="metric-card"><div class="label">GT Type</div><div class="val" style="font-size:1rem;text-transform:capitalize">${row.type||'-'}</div></div>
-                <div class="metric-card"><div class="label">趋势</div><div class="val">${row.trend||'-'}</div></div>
-                <div class="metric-card"><div class="label">Intent</div><div class="val" style="font-size:1rem;text-transform:capitalize">${row.intent||'-'}</div></div>
-                <div class="metric-card"><div class="label">Route</div><div class="val" style="font-size:1rem">${row.route||'-'}</div></div>
-                <div class="metric-card"><div class="label">YoY Trend</div><div class="val">${row.trend_yearly||0}%</div></div>
-                <div class="metric-card"><div class="label">Ads Comp</div><div class="val" style="font-size:1rem">${row.competition||'-'}</div></div>
-                <div class="metric-card"><div class="label">Avg Ref Domains</div><div class="val">${(row.avg_ref_domains||0).toLocaleString()}</div></div>
-                <div class="metric-card"><div class="label">Backlinks</div><div class="val">${(row.bl_backlinks||0).toLocaleString()}</div></div>
-                <div class="metric-card"><div class="label">DoFollow</div><div class="val">${(row.bl_dofollow||0).toLocaleString()}</div></div>
-                <div class="metric-card"><div class="label">Ref Domains</div><div class="val">${(row.bl_ref_domains||0).toLocaleString()}</div></div>
+                ${mc('Volume',          (row.volume||0).toLocaleString(),                        'blue')}
+                ${mc('KD',              row.kd||'-',                                              kdClass)}
+                ${mc('CPC',             '$'+(row.cpc||0))}
+                ${mc('ROI',             row.roi>=9999?'>9999%':Math.round(row.roi)+'%',           roiClass)}
+                ${mc('Investment',      '$'+Math.round(row.link_cost||0).toLocaleString())}
+                ${mc('Est. ARR',        '$'+Math.round(row.annual_rev||0).toLocaleString(),       'blue')}
+                ${mc('Req Links',       row.req_links||0)}
+                ${mc('GT Value',        row.value||0,                                             'blue')}
+                ${mc('GT Type',         row.type||'-',                                            '', 'font-size:1rem;text-transform:capitalize')}
+                ${mc('Intent',          row.intent||'-',                                          '', 'font-size:1rem;text-transform:capitalize')}
+                ${mc('Route',           row.route||'-',                                           '', 'font-size:1rem')}
+                ${mc('YoY Trend',       (row.trend_yearly||0)+'%')}
+                ${mc('Ads Comp',        row.competition||'-',                                     '', 'font-size:1rem')}
+                ${mc('Avg Ref Domains', (row.avg_ref_domains||0).toLocaleString())}
+                ${mc('Backlinks',       (row.bl_backlinks||0).toLocaleString())}
+                ${mc('DoFollow',        (row.bl_dofollow||0).toLocaleString())}
+                ${mc('Ref Domains',     (row.bl_ref_domains||0).toLocaleString())}
             </div>`;
 
         // Charts
@@ -526,7 +584,24 @@
     function buildVolChart(row) {
         const ctx = document.getElementById('volChart').getContext('2d');
         if (volChartInstance) volChartInstance.destroy();
-        const m = row.monthly || [];
+        let m = row.monthly;
+        if (typeof m === 'string') { try { m = JSON.parse(m); } catch(e) { m = []; } }
+        m = Array.isArray(m) ? m : [];
+        if (m.length === 0) {
+            ctx.canvas.style.display = 'none';
+            const card = ctx.canvas.closest('.chart-card');
+            if (card && !card.querySelector('.no-data-msg')) {
+                const msg = document.createElement('p');
+                msg.className = 'no-data-msg';
+                msg.style.cssText = 'color:#64748b;font-size:0.9rem;text-align:center;padding:2rem 0;';
+                msg.textContent = 'No monthly data available for this keyword.';
+                card.appendChild(msg);
+            }
+            return;
+        }
+        ctx.canvas.style.display = '';
+        const existing = ctx.canvas.closest('.chart-card')?.querySelector('.no-data-msg');
+        if (existing) existing.remove();
         const labels = m.map(d => `${d.year}-${String(d.month).padStart(2,'0')}`);
         const data = m.map(d => d.vol);
         volChartInstance = new Chart(ctx, {
