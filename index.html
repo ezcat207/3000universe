@@ -453,7 +453,23 @@
         document.getElementById('detailHero').innerHTML = `
             <span class="root-badge">${row.keyword_root}</span>
             <span class="root-badge" style="background:rgba(16,185,129,0.15);color:#34d399;margin-left:8px">${row.batch}</span>
-            <h2>${row.keyword}</h2>
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.25rem;">
+                <h2 style="margin:0">${row.keyword}</h2>
+                <a href="https://trends.google.com/trends/explore?date=now%207-d&q=happy%20birthday%20images,GPTs,${encodeURIComponent(row.keyword)}"
+                   target="_blank" rel="noopener"
+                   style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:#60a5fa;font-size:0.85rem;font-weight:500;text-decoration:none;white-space:nowrap;transition:all 0.2s;"
+                   onmouseover="this.style.background='rgba(59,130,246,0.22)'"
+                   onmouseout="this.style.background='rgba(59,130,246,0.12)'">
+                    📈 Google Trends
+                </a>
+                <a href="https://www.google.com/search?q=${encodeURIComponent(row.keyword)}"
+                   target="_blank" rel="noopener"
+                   style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#34d399;font-size:0.85rem;font-weight:500;text-decoration:none;white-space:nowrap;transition:all 0.2s;"
+                   onmouseover="this.style.background='rgba(16,185,129,0.22)'"
+                   onmouseout="this.style.background='rgba(16,185,129,0.12)'">
+                    🔍 Google Search
+                </a>
+            </div>
             <div class="metric-grid">
                 ${mc('Volume',          (row.volume||0).toLocaleString(),                        'blue')}
                 ${mc('KD',              row.kd||'-',                                              kdClass)}
