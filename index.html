@@ -128,9 +128,31 @@
             background:rgba(59,130,246,0.15); color:#60a5fa; font-size:0.9rem;
             font-weight:500; margin-bottom:1rem;
         }
+        .metric-cat-filters {
+            display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1.5rem; margin-bottom:0.75rem;
+        }
+        .metric-cat-btn {
+            padding:5px 14px; border-radius:999px; font-size:0.8rem; font-weight:600;
+            border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05);
+            color:var(--text-secondary); cursor:pointer; transition:all 0.2s; white-space:nowrap;
+        }
+        .metric-cat-btn.active-all   { background:rgba(255,255,255,0.12); color:var(--text-primary); border-color:rgba(255,255,255,0.25); }
+        .metric-cat-btn.active-demand { background:rgba(59,130,246,0.15); color:#60a5fa; border-color:rgba(59,130,246,0.4); }
+        .metric-cat-btn.active-supply { background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.4); }
+        .metric-cat-btn.active-value  { background:rgba(16,185,129,0.15); color:#34d399; border-color:rgba(16,185,129,0.4); }
+        .metric-cat-label {
+            grid-column:1/-1; font-size:0.72rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:1px; padding:4px 0 2px; margin-top:0.25rem;
+            display:flex; align-items:center; gap:8px;
+        }
+        .metric-cat-label::after { content:''; flex:1; height:1px; background:currentColor; opacity:0.2; }
+        .metric-cat-label.cat-demand { color:#60a5fa; }
+        .metric-cat-label.cat-supply { color:#fbbf24; }
+        .metric-cat-label.cat-value  { color:#34d399; }
+        .metric-card[data-cat].hidden { display:none; }
         .metric-grid {
             display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));
-            gap:1rem; margin-top:1.5rem;
+            gap:1rem; margin-top:0;
         }
         @media(max-width: 768px) {
             .metric-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
@@ -432,12 +454,36 @@
         'DoFollow':        'DoFollow backlinks pass SEO authority (link juice) to the page. More impactful than nofollow links for ranking.',
         'Ref Domains':     'Number of unique root domains currently linking to this keyword\'s target page.',
     };
+    const MC_CAT = {
+        demand: ['Volume','GT Value','GT Type','YoY Trend','Intent'],
+        supply: ['KD','Req Links','Avg Ref Domains','Backlinks','DoFollow','Ref Domains','Ads Comp'],
+        value:  ['CPC','ROI','Investment','Est. ARR','Route'],
+    };
     function mc(label, val, cls, sty) {
         const tip = MC_INFO[label] || '';
+        const cat = Object.keys(MC_CAT).find(k => MC_CAT[k].includes(label)) || '';
         const clsStr = cls ? ` class="val ${cls}"` : ' class="val"';
         const styStr = sty ? ` style="${sty}"` : '';
         const btn = tip ? `<button class="info-icon" onclick="event.stopPropagation();this.classList.toggle('active')">i<span class="metric-tooltip">${tip}</span></button>` : '';
-        return `<div class="metric-card"><div class="label">${label}</div><div${clsStr}${styStr}>${val}</div>${btn}</div>`;
+        return `<div class="metric-card" data-cat="${cat}"><div class="label">${label}</div><div${clsStr}${styStr}>${val}</div>${btn}</div>`;
+    }
+    function mcLabel(cat) {
+        const cfg = {demand:'📊 Demand',supply:'⚔️ Supply',value:'💰 Value'};
+        return `<div class="metric-cat-label cat-${cat}">${cfg[cat]}</div>`;
+    }
+    let activeCatFilter = 'all';
+    function filterMetrics(cat) {
+        activeCatFilter = cat;
+        document.querySelectorAll('.metric-cat-btn').forEach(b => {
+            b.className = 'metric-cat-btn' + (b.dataset.cat === cat ? ` active-${cat}` : '');
+        });
+        document.querySelectorAll('.metric-card[data-cat]').forEach(card => {
+            card.classList.toggle('hidden', cat !== 'all' && card.dataset.cat !== cat);
+        });
+        document.querySelectorAll('.metric-cat-label').forEach(lbl => {
+            const lcls = [...lbl.classList].find(c => c.startsWith('cat-'))?.replace('cat-','');
+            lbl.classList.toggle('hidden', cat !== 'all' && lcls !== cat);
+        });
     }
 
     // ===== DETAIL VIEW =====
@@ -447,6 +493,7 @@
         document.getElementById('detailView').style.display = 'block';
         window.scrollTo(0, 0);
 
+        activeCatFilter = 'all';
         // Hero section
         const kdClass = row.kd<=15?'green':(row.kd>30?'red':'yellow');
         const roiClass = row.roi>500?'green':(row.roi<0?'red':'yellow');
@@ -470,24 +517,33 @@
                     🔍 Google Search
                 </a>
             </div>
+            <div class="metric-cat-filters">
+                <button class="metric-cat-btn active-all" data-cat="all"    onclick="filterMetrics('all')">All Metrics</button>
+                <button class="metric-cat-btn"            data-cat="demand" onclick="filterMetrics('demand')">📊 Demand</button>
+                <button class="metric-cat-btn"            data-cat="supply" onclick="filterMetrics('supply')">⚔️ Supply</button>
+                <button class="metric-cat-btn"            data-cat="value"  onclick="filterMetrics('value')">💰 Value</button>
+            </div>
             <div class="metric-grid">
+                ${mcLabel('demand')}
                 ${mc('Volume',          (row.volume||0).toLocaleString(),                        'blue')}
-                ${mc('KD',              row.kd||'-',                                              kdClass)}
-                ${mc('CPC',             '$'+(row.cpc||0))}
-                ${mc('ROI',             row.roi>=9999?'>9999%':Math.round(row.roi)+'%',           roiClass)}
-                ${mc('Investment',      '$'+Math.round(row.link_cost||0).toLocaleString())}
-                ${mc('Est. ARR',        '$'+Math.round(row.annual_rev||0).toLocaleString(),       'blue')}
-                ${mc('Req Links',       row.req_links||0)}
                 ${mc('GT Value',        row.value||0,                                             'blue')}
                 ${mc('GT Type',         row.type||'-',                                            '', 'font-size:1rem;text-transform:capitalize')}
-                ${mc('Intent',          row.intent||'-',                                          '', 'font-size:1rem;text-transform:capitalize')}
-                ${mc('Route',           row.route||'-',                                           '', 'font-size:1rem')}
                 ${mc('YoY Trend',       (row.trend_yearly||0)+'%')}
-                ${mc('Ads Comp',        row.competition||'-',                                     '', 'font-size:1rem')}
+                ${mc('Intent',          row.intent||'-',                                          '', 'font-size:1rem;text-transform:capitalize')}
+                ${mcLabel('supply')}
+                ${mc('KD',              row.kd||'-',                                              kdClass)}
+                ${mc('Req Links',       row.req_links||0)}
                 ${mc('Avg Ref Domains', (row.avg_ref_domains||0).toLocaleString())}
                 ${mc('Backlinks',       (row.bl_backlinks||0).toLocaleString())}
                 ${mc('DoFollow',        (row.bl_dofollow||0).toLocaleString())}
                 ${mc('Ref Domains',     (row.bl_ref_domains||0).toLocaleString())}
+                ${mc('Ads Comp',        row.competition||'-',                                     '', 'font-size:1rem')}
+                ${mcLabel('value')}
+                ${mc('CPC',             '$'+(row.cpc||0))}
+                ${mc('ROI',             row.roi>=9999?'>9999%':Math.round(row.roi)+'%',           roiClass)}
+                ${mc('Investment',      '$'+Math.round(row.link_cost||0).toLocaleString())}
+                ${mc('Est. ARR',        '$'+Math.round(row.annual_rev||0).toLocaleString(),       'blue')}
+                ${mc('Route',           row.route||'-',                                           '', 'font-size:1rem')}
             </div>`;
 
         // Charts
